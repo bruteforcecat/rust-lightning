@@ -9,6 +9,7 @@
 
 use core::ops::Sub;
 use core::time::Duration;
+use core::cell::Cell;
 /// A measurement of time.
 pub trait Time: Copy + Sub<Duration, Output = Self> where Self: Sized {
 	/// Returns an instance corresponding to the current moment.
@@ -35,34 +36,54 @@ impl Time for std::time::Instant {
 	fn now() -> Self {
 		std::time::Instant::now()
 	}
-
+	
 	fn duration_since(&self, earlier: Self) -> Duration {
 		self.duration_since(earlier)
 	}
-
+	
 	fn duration_since_epoch() -> Duration {
 		use std::time::SystemTime;
 		SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap()
 	}
-
 	fn elapsed(&self) -> Duration {
 		std::time::Instant::elapsed(self)
 	}
 }
 
+#[cfg(not(feature = "no-std"))]
+impl Time for std::time::SystemTime {
+	fn now() -> Self {
+		std::time::SystemTime::now()
+	}
+	
+	fn duration_since(&self, earlier: Self) -> Duration {
+		self.duration_since(earlier).unwrap()
+	}
+	
+	fn duration_since_epoch() -> Duration {
+		use std::time::SystemTime;
+		SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap()
+	}
+	
+	fn elapsed(&self) -> Duration {
+		std::time::SystemTime::elapsed(self).unwrap()
+	}
+}
+
+
 impl Time for Eternity {
 	fn now() -> Self {
 		Self
 	}
-
+	
 	fn duration_since(&self, _earlier: Self) -> Duration {
 		Duration::from_secs(0)
 	}
-
+	
 	fn duration_since_epoch() -> Duration {
 		Duration::from_secs(0)
 	}
-
+	
 	fn elapsed(&self) -> Duration {
 		Duration::from_secs(0)
 	}
@@ -76,45 +97,37 @@ impl Sub<Duration> for Eternity {
 	}
 }
 
-#[cfg(test)]
-pub mod tests {
-	use util::time::{Eternity, Time};
+/// Time that can be advanced manually in tests.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct SinceEpoch(Duration);
 
-	use core::cell::Cell;
-	use core::ops::Sub;
-	use core::time::Duration;
-
-	/// Time that can be advanced manually in tests.
-	#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-	pub struct SinceEpoch(Duration);
-
-	impl SinceEpoch {
-		thread_local! {
-			static ELAPSED: Cell<Duration> = core::cell::Cell::new(Duration::from_secs(0));
-		}
-
-		pub fn advance(duration: Duration) {
-			Self::ELAPSED.with(|elapsed| elapsed.set(elapsed.get() + duration))
-		}
+impl SinceEpoch {
+	thread_local! {
+		static ELAPSED: Cell<Duration> = core::cell::Cell::new(Duration::from_secs(0));
 	}
 
-	impl Time for SinceEpoch {
-		fn now() -> Self {
-			Self(Self::duration_since_epoch())
-		}
-
-		fn duration_since(&self, earlier: Self) -> Duration {
-			self.0 - earlier.0
-		}
-
-		fn duration_since_epoch() -> Duration {
-			Self::ELAPSED.with(|elapsed| elapsed.get())
-		}
-
-		fn elapsed(&self) -> Duration {
-			Self::duration_since_epoch() - self.0
-		}
+	pub fn advance(duration: Duration) {
+		Self::ELAPSED.with(|elapsed| elapsed.set(elapsed.get() + duration))
 	}
+}
+
+impl Time for SinceEpoch {
+	fn now() -> Self {
+		Self(Self::duration_since_epoch())
+	}
+
+	fn duration_since(&self, earlier: Self) -> Duration {
+		self.0 - earlier.0
+	}
+
+	fn duration_since_epoch() -> Duration {
+		Self::ELAPSED.with(|elapsed| elapsed.get())
+	}
+
+	fn elapsed(&self) -> Duration {
+		Self::duration_since_epoch() - self.0
+	}
+}
 
 	impl Sub<Duration> for SinceEpoch {
 		type Output = Self;
@@ -123,6 +136,13 @@ pub mod tests {
 			Self(self.0 - other)
 		}
 	}
+
+
+#[cfg(test)]
+pub mod tests {
+	use util::time::{Eternity, SinceEpoch, Time};
+
+	use core::time::Duration;
 
 	#[test]
 	fn time_passes_when_advanced() {
@@ -149,4 +169,3 @@ pub mod tests {
 		assert_eq!(later - elapsed, now);
 	}
 }
-
