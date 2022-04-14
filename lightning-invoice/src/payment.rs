@@ -181,21 +181,21 @@ where
 /// be retried.
 #[derive(Debug,Clone,Copy)]
 struct PaymentAttempts {
-    /// This should be >= 1 as we only insert PaymentAttempts for a PaymentHash if there is at least
-    /// one attempt.
-    counts: usize,
-	  #[cfg(feature = "std")]
-    first_attempted_at: SystemTime
+	/// This should be >= 1 as we only insert PaymentAttempts for a PaymentHash if there is at least
+	/// /// one attempt.
+	counts: usize,
+	#[cfg(feature = "std")]
+	first_attempted_at: SystemTime
 }
 
 impl PaymentAttempts {
-    fn new() -> Self {
-        let now = SystemTime::now();
-        PaymentAttempts{
-            counts: 1,
-            first_attempted_at: now
-        }
-    }
+	fn new() -> Self {
+		let now = SystemTime::now();
+		PaymentAttempts{
+			counts: 1,
+			first_attempted_at: now
+		}
+	}
 }
 
 /// A trait defining behavior of an [`Invoice`] payer.
@@ -235,25 +235,25 @@ pub trait Router<S: Score> {
 /// Strategy for retrying payment path failures for an [`Invoice`].
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum Retry {
-    /// Count Out. Max number of attempts to retry payment.
-    ///
-    /// Note that this is the number of *path* failures, not full payment retries. For multi-path
-    /// payments, if this is less than the total number of paths, we will never even retry all of the
-    /// payment's paths.
-    Attempts(usize),
-	  #[cfg(feature = "std")]
-	  /// Time Out. Max time spent to retry payment
-    Timeout(Duration),
+	/// Count Out. Max number of attempts to retry payment.
+	///
+	/// Note that this is the number of *path* failures, not full payment retries. For multi-path
+	/// payments, if this is less than the total number of paths, we will never even retry all of the
+	/// payment's paths.
+	Attempts(usize),
+	#[cfg(feature = "std")]
+	/// Time Out. Max time spent to retry payment
+	Timeout(Duration),
 }
 
 impl Retry {
-    fn is_retryable_now(&self, attempts: &PaymentAttempts) -> bool {
-        match self {
-            Retry::Attempts(0) => false,
-            Retry::Attempts(max_retry_count) => max_retry_count + 1 > attempts.counts,
-            Retry::Timeout(max_duration) => *max_duration >= SystemTime::now().duration_since(attempts.first_attempted_at).unwrap()
-        }
-    }
+	fn is_retryable_now(&self, attempts: &PaymentAttempts) -> bool {
+		match self {
+			Retry::Attempts(0) => false,
+			Retry::Attempts(max_retry_count) => max_retry_count + 1 > attempts.counts,
+			Retry::Timeout(max_duration) => *max_duration >= SystemTime::now().duration_since(attempts.first_attempted_at).unwrap()
+		}
+	}
 }
 
 /// An error that may occur when making a payment.
@@ -405,7 +405,7 @@ where
 				PaymentSendFailure::AllFailedRetrySafe(_) => {
 					let mut payment_cache = self.payment_cache.lock().unwrap();
 					let payment_attempts = payment_cache.get_mut(&payment_hash).unwrap();
-          if self.retry.is_retryable_now(payment_attempts) {
+					if self.retry.is_retryable_now(payment_attempts) {
 						payment_attempts.counts += 1;
 						core::mem::drop(payment_cache);
 						Ok(self.pay_internal(params, payment_hash, send_payment)?)
@@ -439,17 +439,17 @@ where
     let attempts = *self.payment_cache.lock().unwrap()
 			.entry(payment_hash)
 			.and_modify(|attempts| {
-          attempts.counts += 1;
-      })
-      .or_insert(PaymentAttempts::new());
+				attempts.counts += 1;
+			})
+			.or_insert(PaymentAttempts::new());
 
-    if ! self.retry.is_retryable_now(&PaymentAttempts{
-        counts: attempts.counts -1,
-        ..attempts
-    }) {
-          log_trace!(self.logger, "Payment {} exceeded maximum attempts; not retrying (attempts: {})", log_bytes!(payment_hash.0), attempts.counts);
-          return Err(());
-    }
+	if ! self.retry.is_retryable_now(&PaymentAttempts{
+		counts: attempts.counts -1,
+		..attempts
+	}) {
+		log_trace!(self.logger, "Payment {} exceeded maximum attempts; not retrying (attempts: {})", log_bytes!(payment_hash.0), attempts.counts);
+		return Err(());
+	}
 
 		#[cfg(feature = "std")] {
 			if has_expired(params) {
@@ -846,6 +846,7 @@ mod tests {
 		assert_eq!(*payer.attempts.borrow(), 3);
 	}
 
+	#[cfg(feature = "std")]
 	#[test]
 	fn fails_paying_invoice_after_max_retry_timeout() {
 		let event_handled = core::cell::RefCell::new(false);
@@ -882,7 +883,7 @@ mod tests {
 		assert_eq!(*event_handled.borrow(), false);
 		assert_eq!(*payer.attempts.borrow(), 2);
 
-    std::thread::sleep(Duration::from_millis(101));
+		std::thread::sleep(Duration::from_millis(101));
 
 		invoice_payer.handle_event(&event);
 		assert_eq!(*event_handled.borrow(), true);
