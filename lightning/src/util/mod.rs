@@ -20,6 +20,7 @@ pub mod errors;
 pub mod ser;
 pub mod message_signing;
 pub mod invoice;
+pub mod time;
 
 pub(crate) mod atomic_counter;
 pub(crate) mod byte_utils;
