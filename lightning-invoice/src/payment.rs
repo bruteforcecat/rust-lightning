@@ -184,6 +184,7 @@ struct PaymentAttempts {
     /// This should be >= 1 as we only insert PaymentAttempts for a PaymentHash if there is at least
     /// one attempt.
     counts: usize,
+	  #[cfg(feature = "std")]
     first_attempted_at: SystemTime
 }
 
@@ -240,6 +241,7 @@ pub enum Retry {
     /// payments, if this is less than the total number of paths, we will never even retry all of the
     /// payment's paths.
     Attempts(usize),
+	  #[cfg(feature = "std")]
 	  /// Time Out. Max time spent to retry payment
     Timeout(Duration),
 }
