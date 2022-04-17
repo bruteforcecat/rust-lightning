@@ -881,7 +881,7 @@ mod tests {
 	#[cfg(feature = "std")]
 	#[test]
 	fn fails_paying_invoice_after_max_retry_timeout() {
-		use lightning::util::time::SinceEpoch;
+		use lightning::util::test_utils::SinceEpoch;
 		let event_handled = core::cell::RefCell::new(false);
 		let event_handler = |_: &_| { *event_handled.borrow_mut() = true; };
 

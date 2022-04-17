@@ -1273,8 +1273,8 @@ use util::time::Time;
 
 #[cfg(test)]
 mod tests {
-	use super::{ChannelLiquidity, ProbabilisticScoringParameters, ProbabilisticScorerUsingTime, ScoringParameters, ScorerUsingTime, Time};
-	use util::time::SinceEpoch;
+	use super::{ChannelLiquidity, ProbabilisticScoringParameters, ProbabilisticScorerUsingTime, ScoringParameters, ScorerUsingTime};
+	use util::test_utils::SinceEpoch;
 
 	use ln::features::{ChannelFeatures, NodeFeatures};
 	use ln::msgs::{ChannelAnnouncement, ChannelUpdate, OptionalField, UnsignedChannelAnnouncement, UnsignedChannelUpdate};
@@ -1289,6 +1289,7 @@ mod tests {
 	use bitcoin::network::constants::Network;
 	use bitcoin::secp256k1::{PublicKey, Secp256k1, SecretKey};
 	use core::time::Duration;
+	use util::time::Time;
 	use io;
 
 	/// A scorer for testing with time that can be manually advanced.

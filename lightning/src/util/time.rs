@@ -9,7 +9,6 @@
 
 use core::ops::Sub;
 use core::time::Duration;
-use core::cell::Cell;
 /// A measurement of time.
 pub trait Time: Copy + Sub<Duration, Output = Self> where Self: Sized {
 	/// Returns an instance corresponding to the current moment.
@@ -30,46 +29,6 @@ pub trait Time: Copy + Sub<Duration, Output = Self> where Self: Sized {
 /// A state in which time has no meaning.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Eternity;
-
-#[cfg(not(feature = "no-std"))]
-impl Time for std::time::Instant {
-	fn now() -> Self {
-		std::time::Instant::now()
-	}
-	
-	fn duration_since(&self, earlier: Self) -> Duration {
-		self.duration_since(earlier)
-	}
-	
-	fn duration_since_epoch() -> Duration {
-		use std::time::SystemTime;
-		SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap()
-	}
-	fn elapsed(&self) -> Duration {
-		std::time::Instant::elapsed(self)
-	}
-}
-
-#[cfg(not(feature = "no-std"))]
-impl Time for std::time::SystemTime {
-	fn now() -> Self {
-		std::time::SystemTime::now()
-	}
-	
-	fn duration_since(&self, earlier: Self) -> Duration {
-		self.duration_since(earlier).unwrap()
-	}
-	
-	fn duration_since_epoch() -> Duration {
-		use std::time::SystemTime;
-		SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap()
-	}
-	
-	fn elapsed(&self) -> Duration {
-		std::time::SystemTime::elapsed(self).unwrap()
-	}
-}
-
 
 impl Time for Eternity {
 	fn now() -> Self {
@@ -97,50 +56,51 @@ impl Sub<Duration> for Eternity {
 	}
 }
 
-/// Time that can be advanced manually in tests.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct SinceEpoch(Duration);
-
-impl SinceEpoch {
-	thread_local! {
-		static ELAPSED: Cell<Duration> = core::cell::Cell::new(Duration::from_secs(0));
+#[cfg(not(feature = "no-std"))]
+impl Time for std::time::Instant {
+	fn now() -> Self {
+		std::time::Instant::now()
 	}
-
-	pub fn advance(duration: Duration) {
-		Self::ELAPSED.with(|elapsed| elapsed.set(elapsed.get() + duration))
+	
+	fn duration_since(&self, earlier: Self) -> Duration {
+		self.duration_since(earlier)
+	}
+	
+	fn duration_since_epoch() -> Duration {
+		use std::time::SystemTime;
+		SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap()
+	}
+	fn elapsed(&self) -> Duration {
+		std::time::Instant::elapsed(self)
 	}
 }
 
-impl Time for SinceEpoch {
+#[cfg(not(feature = "no-std"))]
+impl Time for std::time::SystemTime {
 	fn now() -> Self {
-		Self(Self::duration_since_epoch())
+		std::time::SystemTime::now()
 	}
 
 	fn duration_since(&self, earlier: Self) -> Duration {
-		self.0 - earlier.0
+		self.duration_since(earlier).unwrap()
 	}
 
 	fn duration_since_epoch() -> Duration {
-		Self::ELAPSED.with(|elapsed| elapsed.get())
+		use std::time::SystemTime;
+		SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap()
 	}
 
 	fn elapsed(&self) -> Duration {
-		Self::duration_since_epoch() - self.0
+		std::time::SystemTime::elapsed(self).unwrap()
 	}
 }
 
-	impl Sub<Duration> for SinceEpoch {
-		type Output = Self;
-
-		fn sub(self, other: Duration) -> Self {
-			Self(self.0 - other)
-		}
-	}
 
 
 #[cfg(test)]
 pub mod tests {
-	use util::time::{Eternity, SinceEpoch, Time};
+	use util::time::{Time, Eternity};
+	use util::test_utils::SinceEpoch;
 
 	use core::time::Duration;
 
