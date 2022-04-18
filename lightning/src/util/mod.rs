@@ -20,7 +20,6 @@ pub mod errors;
 pub mod ser;
 pub mod message_signing;
 pub mod invoice;
-pub mod time;
 
 pub(crate) mod atomic_counter;
 pub(crate) mod byte_utils;
@@ -34,6 +33,7 @@ pub(crate) mod poly1305;
 pub(crate) mod chacha20poly1305rfc;
 pub(crate) mod transaction_utils;
 pub(crate) mod scid_utils;
+pub(crate) mod time;
 
 /// Logging macro utilities.
 #[macro_use]

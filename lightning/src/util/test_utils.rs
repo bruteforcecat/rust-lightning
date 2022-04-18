@@ -26,7 +26,6 @@ use util::enforcing_trait_impls::{EnforcingSigner, EnforcementState};
 use util::events;
 use util::logger::{Logger, Level, Record};
 use util::ser::{Readable, ReadableArgs, Writer, Writeable};
-use util::time::Time;
 
 use bitcoin::blockdata::constants::genesis_block;
 use bitcoin::blockdata::transaction::{Transaction, TxOut};
@@ -47,8 +46,6 @@ use core::time::Duration;
 use sync::{Mutex, Arc};
 use core::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use core::{cmp, mem};
-use core::cell::Cell;
-use core::ops::Sub;
 use bitcoin::bech32::u5;
 use chain::keysinterface::{InMemorySigner, Recipient, KeyMaterial};
 
@@ -728,43 +725,3 @@ impl core::fmt::Debug for OnRegisterOutput {
 
 /// A scorer useful in testing, when the passage of time isn't a concern.
 pub type TestScorer = FixedPenaltyScorer;
-
-/// Time that can be advanced manually in tests.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct SinceEpoch(Duration);
-
-impl SinceEpoch {
-	thread_local! {
-		static ELAPSED: Cell<Duration> = core::cell::Cell::new(Duration::from_secs(0));
-	}
-
-	pub fn advance(duration: Duration) {
-		Self::ELAPSED.with(|elapsed| elapsed.set(elapsed.get() + duration))
-	}
-}
-
-impl Time for SinceEpoch {
-	fn now() -> Self {
-		Self(Self::duration_since_epoch())
-	}
-
-	fn duration_since(&self, earlier: Self) -> Duration {
-		self.0 - earlier.0
-	}
-	
-	fn duration_since_epoch() -> Duration {
-		Self::ELAPSED.with(|elapsed| elapsed.get())
-	}
-	
-	fn elapsed(&self) -> Duration {
-		Self::duration_since_epoch() - self.0
-	}
-}
-
-impl Sub<Duration> for SinceEpoch {
-	type Output = Self;
-
-	fn sub(self, other: Duration) -> Self {
-		Self(self.0 - other)
-	}
-}

@@ -1274,7 +1274,7 @@ use util::time::Time;
 #[cfg(test)]
 mod tests {
 	use super::{ChannelLiquidity, ProbabilisticScoringParameters, ProbabilisticScorerUsingTime, ScoringParameters, ScorerUsingTime};
-	use util::test_utils::SinceEpoch;
+	use util::time::tests::SinceEpoch;
 
 	use ln::features::{ChannelFeatures, NodeFeatures};
 	use ln::msgs::{ChannelAnnouncement, ChannelUpdate, OptionalField, UnsignedChannelAnnouncement, UnsignedChannelUpdate};

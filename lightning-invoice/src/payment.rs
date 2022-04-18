@@ -146,7 +146,7 @@ use lightning::routing::scoring::{LockableScore, Score};
 use lightning::routing::router::{PaymentParameters, Route, RouteParameters};
 use lightning::util::events::{Event, EventHandler};
 use lightning::util::logger::Logger;
-use lightning::util::time::Time;
+use time::Time;
 use crate::sync::Mutex;
 
 use secp256k1::key::PublicKey;
@@ -158,7 +158,7 @@ use core::fmt::{Display, Formatter};
 #[cfg(feature = "std")]
 use std::time::SystemTime;
 #[cfg(feature = "no-std")]
-use lightning::util::time;
+use time;
 
 /// A utility for paying [`Invoice`]s and sending spontaneous payments.
 ///
@@ -193,7 +193,7 @@ where
 
 /// Storing minimal payment attempts information required for determining if a outbound payment can
 /// be retried.
-#[derive(Debug,Clone,Copy)]
+#[derive(Debug, Clone, Copy)]
 struct PaymentAttempts<T: Time> {
 	/// This should be >= 1 as we only insert PaymentAttempts for a PaymentHash if there is at least
 	/// /// one attempt.
@@ -881,7 +881,7 @@ mod tests {
 	#[cfg(feature = "std")]
 	#[test]
 	fn fails_paying_invoice_after_max_retry_timeout() {
-		use lightning::util::test_utils::SinceEpoch;
+		use time::tests::SinceEpoch;
 		let event_handled = core::cell::RefCell::new(false);
 		let event_handler = |_: &_| { *event_handled.borrow_mut() = true; };
 

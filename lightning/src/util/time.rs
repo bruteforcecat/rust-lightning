@@ -95,14 +95,53 @@ impl Time for std::time::SystemTime {
 	}
 }
 
-
-
 #[cfg(test)]
 pub mod tests {
-	use util::time::{Time, Eternity};
-	use util::test_utils::SinceEpoch;
+	use super::{Time, Eternity};
 
 	use core::time::Duration;
+	use core::ops::Sub;
+	use core::cell::Cell;
+
+	/// Time that can be advanced manually in tests.
+	#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+	pub struct SinceEpoch(Duration);
+	
+	impl SinceEpoch {
+		thread_local! {
+			static ELAPSED: Cell<Duration> = core::cell::Cell::new(Duration::from_secs(0));
+		}
+	
+		pub fn advance(duration: Duration) {
+			Self::ELAPSED.with(|elapsed| elapsed.set(elapsed.get() + duration))
+		}
+	}
+	
+	impl Time for SinceEpoch {
+		fn now() -> Self {
+			Self(Self::duration_since_epoch())
+		}
+	
+		fn duration_since(&self, earlier: Self) -> Duration {
+			self.0 - earlier.0
+		}
+		
+		fn duration_since_epoch() -> Duration {
+			Self::ELAPSED.with(|elapsed| elapsed.get())
+		}
+		
+		fn elapsed(&self) -> Duration {
+			Self::duration_since_epoch() - self.0
+		}
+	}
+	
+	impl Sub<Duration> for SinceEpoch {
+		type Output = Self;
+	
+		fn sub(self, other: Duration) -> Self {
+			Self(self.0 - other)
+		}
+	}
 
 	#[test]
 	fn time_passes_when_advanced() {
