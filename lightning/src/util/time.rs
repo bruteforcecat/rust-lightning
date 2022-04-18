@@ -113,7 +113,7 @@ pub mod tests {
 		thread_local! {
 			static ELAPSED: Cell<Duration> = core::cell::Cell::new(Duration::from_secs(0));
 		}
-	
+
 		pub fn advance(duration: Duration) {
 			Self::ELAPSED.with(|elapsed| elapsed.set(elapsed.get() + duration))
 		}
