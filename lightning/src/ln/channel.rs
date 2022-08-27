@@ -492,6 +492,9 @@ pub(crate) const MIN_AFFORDABLE_HTLC_COUNT: usize = 4;
 ///   * `EXPIRE_PREV_CONFIG_TICKS` = convergence_delay / tick_interval
 pub(crate) const EXPIRE_PREV_CONFIG_TICKS: usize = 5;
 
+/// A coinbase transaction output can be spent after the tx has this number of confirmations.
+const COINBASE_MATURITY: i64 = 100;
+
 // TODO: We should refactor this to be an Inbound/OutboundChannel until initial setup handshaking
 // has been completed, and then turn into a Channel to get compiler-time enforcement of things like
 // calling channel_id() before we're set up or things like get_outbound_funding_signed on an
@@ -4782,6 +4785,12 @@ impl<Signer: Sign> Channel<Signer> {
 
 		if funding_tx_confirmations < self.minimum_depth.unwrap_or(0) as i64 {
 			return None;
+		}
+
+		if let Some(tx) = &self.funding_transaction {
+			if tx.is_coin_base() && funding_tx_confirmations < COINBASE_MATURITY {
+				return None;
+			}
 		}
 
 		let non_shutdown_state = self.channel_state & (!MULTI_STATE_FLAGS);
