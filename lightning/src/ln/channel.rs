@@ -8001,4 +8001,44 @@ mod tests {
 			node_b_node_id, &InitFeatures::known(), &open_channel_msg, 7, &config, 0, &&logger, 42);
 		assert!(res.is_ok());
 	}
+
+	#[test]
+	fn test_maturity_is_considered_if_channel_fund_by_coinbase_tx() {
+		let feeest = LowerBoundedFeeEstimator::new(&TestFeeEstimator{fee_est: 15000});
+		let secp_ctx = Secp256k1::new();
+		let seed = [42; 32];
+		let network = Network::Testnet;
+		let keys_provider = test_utils::TestKeysInterface::new(&seed, network);
+		let logger = test_utils::TestLogger::new();
+		let network = Network::Testnet;
+		let best_block = BestBlock::from_genesis(network);
+		let chain_hash = best_block.block_hash();
+
+		let node_b_node_id = PublicKey::from_secret_key(&secp_ctx, &SecretKey::from_slice(&[42; 32]).unwrap());
+		let config = UserConfig::default();
+		let mut node_a_chan = Channel::<EnforcingSigner>::new_outbound(&feeest, &&keys_provider,
+			node_b_node_id, &InitFeatures::known(), 10000000, 100000, 42, &config, 0, 42).unwrap();
+
+		let open_channel_msg = node_a_chan.get_open_channel(genesis_block(network).header.block_hash());
+		let node_b_node_id = PublicKey::from_secret_key(&secp_ctx, &SecretKey::from_slice(&[7; 32]).unwrap());
+		let mut node_b_chan = Channel::<EnforcingSigner>::new_from_req(&feeest, &&keys_provider,
+			node_b_node_id, &InitFeatures::known(), &open_channel_msg, 7, &config, 0, &&logger, 42).unwrap();
+
+		// Node B --> Node A: accept channel
+		let accept_channel_msg = node_b_chan.accept_inbound_channel(0);
+		node_a_chan.accept_channel(&accept_channel_msg, &config.channel_handshake_limits, &InitFeatures::known()).unwrap();
+
+		// Node A --> Node B: funding created
+		let output_script = node_a_chan.get_funding_redeemscript();
+		let tx = Transaction { version: 1, lock_time: PackedLockTime::ZERO, input: Vec::new(), output: vec![TxOut {
+			value: 10000000, script_pubkey: output_script.clone(),
+		}]};
+		let funding_outpoint = OutPoint{ txid: tx.txid(), index: 0 };
+		let funding_created_msg = node_a_chan.get_outbound_funding_created(tx.clone(), funding_outpoint, &&logger).unwrap();
+		let (funding_signed_msg, _, _) = node_b_chan.funding_created(&funding_created_msg, best_block, &&logger).unwrap();
+
+		// Node B --> Node A: funding signed
+		let _ = node_a_chan.funding_signed(&funding_signed_msg, best_block, &&logger);
+	}
+
 }
